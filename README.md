@@ -1,6 +1,6 @@
-# RAD Essentials
+# RADEssentials
 
-RAD Essentials is a Windows design-time package for RAD Studio. It adds the **Format X** source formatter and GitHub project publishing tools to the IDE.
+RADEssentials is a Windows design-time package for RAD Studio. It adds the **Format X** source formatter and GitHub project publishing tools to the IDE.
 
 > **PDF:** The PDF part is still in development.
 
