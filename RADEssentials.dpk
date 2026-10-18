@@ -1,0 +1,53 @@
+package RADEssentials;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS ON}
+{$RANGECHECKS ON}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$DESIGNONLY}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  vcl,
+  designide,
+  vclie,
+  vcledge;
+
+contains
+  RADE.Core in 'RADE.Core.pas',
+  RADE.PDFViewer in 'Utils\RADE_PDFViewer\RADE.PDFViewer.pas' {RADEPDFViewerForm},
+  RADE.Settings in 'Utils\RADE.Settings.pas' {RADESettingsForm},
+  RADE.Refactor in 'Utils\RADE_Refactor\RADE.Refactor.pas',
+  RADEGit.Core in 'Utils\RADE_Git\RADEGit.Core.pas',
+  RADEGit.DockForm in 'Utils\RADE_Git\RADEGit.DockForm.pas',
+  RADEGit.FileTree in 'Utils\RADE_Git\RADEGit.FileTree.pas',
+  RADEGit.GitignoreMgr in 'Utils\RADE_Git\RADEGit.GitignoreMgr.pas',
+  RADEGit.HelpForm in 'Utils\RADE_Git\RADEGit.HelpForm.pas',
+  RADEGit.Integration in 'Utils\RADE_Git\RADEGit.Integration.pas',
+  RADEGit.OAuth in 'Utils\RADE_Git\RADEGit.OAuth.pas',
+  RADEGit.RepoApi in 'Utils\RADE_Git\RADEGit.RepoApi.pas',
+  RADEGit.Settings in 'Utils\RADE_Git\RADEGit.Settings.pas';
+
+end.
