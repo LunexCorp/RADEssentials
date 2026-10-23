@@ -74,7 +74,7 @@
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
-        <DCC_BplOutput>C:\Users\Christo\Desktop\RADEssentiales\Builds\</DCC_BplOutput>
+        <DCC_BplOutput>C:\Users\Christo\Desktop\Folders\RADEssentiales\Builds\</DCC_BplOutput>
         <Debugger_HostApplication>C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\bds.exe</Debugger_HostApplication>
         <Debugger_RunParams>-pDelphi -rRADEssentialesDebug</Debugger_RunParams>
     </PropertyGroup>
@@ -96,7 +96,9 @@
         </DCCReference>
         <DCCReference Include="Utils\RADE_Refactor\RADE.Refactor.pas"/>
         <DCCReference Include="Utils\RADE_Git\RADEGit.Core.pas"/>
-        <DCCReference Include="Utils\RADE_Git\RADEGit.DockForm.pas"/>
+        <DCCReference Include="Utils\RADE_Git\RADEGit.DockForm.pas">
+            <Form>RadeGitDock</Form>
+        </DCCReference>
         <DCCReference Include="Utils\RADE_Git\RADEGit.FileTree.pas"/>
         <DCCReference Include="Utils\RADE_Git\RADEGit.GitignoreMgr.pas"/>
         <DCCReference Include="Utils\RADE_Git\RADEGit.HelpForm.pas"/>
@@ -138,7 +140,7 @@
                 <Platform value="Win64x">True</Platform>
             </Platforms>
             <Deployment Version="5">
-                <DeployFile LocalName="..\..\RADEssentiales\Builds\RADEssentials.bpl" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="Builds\RADEssentials.bpl" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>RADEssentials.bpl</RemoteName>
                         <Overwrite>true</Overwrite>

@@ -73,6 +73,8 @@ procedure RadeGit_FreeDock;
 
 implementation
 
+{$R *.dfm}
+
 var
   GRadeGitDock: TfrmRadeGitDock;
   GRegistered: Boolean;
@@ -174,7 +176,7 @@ end;
 
 constructor TfrmRadeGitDock.Create(AOwner: TComponent);
 begin
-  inherited CreateNew(AOwner);
+  inherited Create(AOwner);
   Name := 'RadeGitDock';
   Caption := 'RADE Git';
   DeskSection := 'RadeGitDock';

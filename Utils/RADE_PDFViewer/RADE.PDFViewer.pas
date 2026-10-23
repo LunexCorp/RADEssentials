@@ -45,6 +45,7 @@ type
     procedure RefreshRecentList;
     procedure AddToRecentList(const AFileName: string);
     procedure OpenPDFFile(const AFileName: string);
+    function PdfFileUrl(const AFileName: string): string;
     procedure UpdateWelcome;
     procedure SetStatus(const AText: string);
     procedure ZoomBy(ADelta: Double);
@@ -217,7 +218,7 @@ end;
 procedure TRADEPDFViewerForm.OpenPDFFile(const AFileName: string);
 var
   I: Integer;
-  LPath, LUrl, LUserData: string;
+  LPath, LUserData: string;
   LTab: TTabSheet;
   LBrowser: TEdgeBrowser;
 begin
@@ -252,13 +253,38 @@ begin
   LBrowser.Align := alClient;
 
   PageControlPDFs.ActivePage := LTab;
-  LUrl := 'file:///' + LPath.Replace('\', '/');
-  LUrl := LUrl.Replace(' ', '%20').Replace('#', '%23');
-  if not LBrowser.Navigate(LUrl) then
-    SetStatus('Could not open ' + ExtractFileName(LPath) + '.')
-  else
-    SetStatus('Loading ' + ExtractFileName(LPath) + '...');
+  SetStatus('Loading ' + ExtractFileName(LPath) + '...');
   UpdateWelcome;
+end;
+
+function TRADEPDFViewerForm.PdfFileUrl(const AFileName: string): string;
+var
+  LPath: string;
+  LBytes: TBytes;
+  LByte: Byte;
+  LBuilder: TStringBuilder;
+begin
+  LPath := TPath.GetFullPath(AFileName).Replace('\', '/');
+  LBytes := TEncoding.UTF8.GetBytes(LPath);
+  if LPath.StartsWith('//') then
+    LBuilder := TStringBuilder.Create('file:')
+  else
+    LBuilder := TStringBuilder.Create('file:///');
+  try
+    for LByte in LBytes do
+      if ((LByte >= Ord('A')) and (LByte <= Ord('Z'))) or
+        ((LByte >= Ord('a')) and (LByte <= Ord('z'))) or
+        ((LByte >= Ord('0')) and (LByte <= Ord('9'))) or
+        (LByte = Ord('-')) or (LByte = Ord('.')) or
+        (LByte = Ord('_')) or (LByte = Ord('~')) or
+        (LByte = Ord('/')) or (LByte = Ord(':')) then
+        LBuilder.Append(Char(LByte))
+      else
+        LBuilder.Append('%').Append(IntToHex(LByte, 2));
+    Result := LBuilder.ToString;
+  finally
+    LBuilder.Free;
+  end;
 end;
 
 procedure TRADEPDFViewerForm.CmbRecentSelect(Sender: TObject);
@@ -295,9 +321,22 @@ end;
 
 procedure TRADEPDFViewerForm.BrowserCreateCompleted(Sender: TCustomEdgeBrowser;
   AResult: HResult);
+var
+  LTab: TTabSheet;
 begin
   if AResult < 0 then
+  begin
     SetStatus('WebView2 could not start. Install the Microsoft Edge WebView2 Runtime.');
+    Exit;
+  end;
+  LTab := Sender.Owner as TTabSheet;
+  if not Sender.Navigate(PdfFileUrl(LTab.Hint)) then
+  begin
+    if LTab = PageControlPDFs.ActivePage then
+      SetStatus('Could not open ' + LTab.Caption + '.');
+  end
+  else if LTab = PageControlPDFs.ActivePage then
+    SetStatus('Loading ' + LTab.Caption + '...');
 end;
 
 procedure TRADEPDFViewerForm.BrowserNavigationCompleted(Sender: TCustomEdgeBrowser;

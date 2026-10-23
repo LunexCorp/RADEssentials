@@ -53,6 +53,13 @@ object RADESettingsForm: TRADESettingsForm
     TabOrder = 2
     OnClick = BtnSaveClick
   end
+  object LblShortcutInstructions: TLabel
+    Left = 24
+    Top = 98
+    Width = 225
+    Height = 15
+    Caption = 'Click a shortcut field, then press the keys.'
+  end
   object BtnCancel: TButton
     Left = 270
     Top = 125

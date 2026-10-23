@@ -26,7 +26,7 @@ procedure RadeGit_OpenSettings;
 implementation
 
 uses
-  System.SysUtils, System.Classes, Vcl.Forms, ToolsAPI,
+  System.SysUtils, System.Classes, Vcl.Forms, Vcl.Graphics, ToolsAPI, Winapi.Windows,
   RadeGit.Core, RadeGit.DockForm, RadeGit.HelpForm, RadeGit.Settings;
 
 type
@@ -85,6 +85,8 @@ var
   LServices: INTAServices;
   LMain: TMainMenu;
   LHelp: TMenuItem;
+  LIcon: Vcl.Graphics.TBitmap;
+  LMenuBitmap: Vcl.Graphics.TBitmap;
   I: Integer;
 begin
   Result := nil;
@@ -106,6 +108,21 @@ begin
   GHelpItem := TMenuItem.Create(LHelp);
   GHelpItem.Caption := 'RAD Essentials';
   GHelpItem.OnClick := GHandlers.OpenHelp;
+  LIcon := Vcl.Graphics.TBitmap.Create;
+  try
+    LIcon.LoadFromResourceName(HInstance, 'ICONBMP');
+    LMenuBitmap := Vcl.Graphics.TBitmap.Create;
+    try
+      LMenuBitmap.PixelFormat := pf24bit;
+      LMenuBitmap.SetSize(16, 16);
+      LMenuBitmap.Canvas.StretchDraw(Rect(0, 0, 16, 16), LIcon);
+      GHelpItem.Bitmap.Assign(LMenuBitmap);
+    finally
+      LMenuBitmap.Free;
+    end;
+  finally
+    LIcon.Free;
+  end;
   LHelp.Add(GHelpItem);
   Result := GHelpItem;
 end;

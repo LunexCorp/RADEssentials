@@ -4,7 +4,8 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes, System.IOUtils,
-  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, System.IniFiles;
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Menus,
+  System.IniFiles;
 
 type
   TRADESettingsForm = class(TForm)
@@ -12,11 +13,14 @@ type
     EdtShortcutFormatX: TEdit;
     LblShortcutPDF: TLabel;
     EdtShortcutPDF: TEdit;
+    LblShortcutInstructions: TLabel;
     BtnSave: TButton;
     BtnCancel: TButton;
     procedure FormCreate(Sender: TObject);
     procedure BtnSaveClick(Sender: TObject);
   private
+    procedure ShortcutEditKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure ShortcutEditKeyPress(Sender: TObject; var Key: Char);
     function GetIniPath: string;
     procedure LoadSettings;
     procedure SaveSettings;
@@ -47,7 +51,36 @@ end;
 
 procedure TRADESettingsForm.FormCreate(Sender: TObject);
 begin
+  EdtShortcutFormatX.ReadOnly := True;
+  EdtShortcutPDF.ReadOnly := True;
+  EdtShortcutFormatX.OnKeyDown := ShortcutEditKeyDown;
+  EdtShortcutPDF.OnKeyDown := ShortcutEditKeyDown;
+  EdtShortcutFormatX.OnKeyPress := ShortcutEditKeyPress;
+  EdtShortcutPDF.OnKeyPress := ShortcutEditKeyPress;
+  EdtShortcutFormatX.Hint := 'Click here, then press the shortcut keys.';
+  EdtShortcutPDF.Hint := 'Click here, then press the shortcut keys.';
+  EdtShortcutFormatX.ShowHint := True;
+  EdtShortcutPDF.ShowHint := True;
   LoadSettings;
+end;
+
+procedure TRADESettingsForm.ShortcutEditKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if (Key = VK_SHIFT) or (Key = VK_CONTROL) or (Key = VK_MENU) then
+  begin
+    Key := 0;
+    Exit;
+  end;
+
+  if Sender is TEdit then
+    TEdit(Sender).Text := ShortCutToText(ShortCut(Key, Shift));
+  Key := 0;
+end;
+
+procedure TRADESettingsForm.ShortcutEditKeyPress(Sender: TObject; var Key: Char);
+begin
+  Key := #0;
 end;
 
 procedure TRADESettingsForm.LoadSettings;

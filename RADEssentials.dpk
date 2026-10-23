@@ -41,7 +41,7 @@ contains
   RADE.Settings in 'Utils\RADE.Settings.pas' {RADESettingsForm},
   RADE.Refactor in 'Utils\RADE_Refactor\RADE.Refactor.pas',
   RADEGit.Core in 'Utils\RADE_Git\RADEGit.Core.pas',
-  RADEGit.DockForm in 'Utils\RADE_Git\RADEGit.DockForm.pas',
+  RADEGit.DockForm in 'Utils\RADE_Git\RADEGit.DockForm.pas' {RadeGitDock},
   RADEGit.FileTree in 'Utils\RADE_Git\RADEGit.FileTree.pas',
   RADEGit.GitignoreMgr in 'Utils\RADE_Git\RADEGit.GitignoreMgr.pas',
   RADEGit.HelpForm in 'Utils\RADE_Git\RADEGit.HelpForm.pas',

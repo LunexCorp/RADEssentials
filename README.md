@@ -1,29 +1,31 @@
-# RADEssentials
+# RAD Essentials
 
-RADEssentials is a Windows design-time package for RAD Studio. It adds the **Format X** source formatter and GitHub project publishing tools to the IDE.
+RAD Essentials is a Windows design-time package for RAD Studio. It adds the **Format X** source formatter and GitHub project publishing tools to the IDE, with its icon on the RAD Studio splash screen and in the Help menu.
 
-> **PDF:** The PDF part is still in development.
+PDF Studio is available from the **RADEssentials > PDF Viewer** menu. It uses the Microsoft Edge WebView2 Runtime to display documents.
 
 ## Requirements
 
 - Windows and Embarcadero RAD Studio. The package is built and verified with RAD Studio 12 (Win32); the project targets Win32.
 - The package dependencies included with RAD Studio: `rtl`, `vcl`, `designide`, `vclie`, and `vcledge`.
 - Git for Windows, installed and discoverable on `PATH`, to use the Git integration.
+- Microsoft Edge WebView2 Runtime, to use PDF Studio.
 - Internet access and a GitHub personal access token for GitHub operations.
 - RAD Studio's ToolsAPI source directory for building the dockable windows. If the compiler cannot find `DockForm.pas` or `DeskUtil.pas`, add `$(BDS)\source\ToolsAPI` to the Win32 Delphi library path and project search path.
 
 ## Build and Install
 
 1. Open `RADEssentials.dproj` in RAD Studio.
-2. Select the **Win32** platform and build the `RADEssentials` package. From a RAD Studio command prompt, you can also build it from this directory with:
+2. The package embeds `Assets\Icons.res`. If you change the icon resource script or bitmap, regenerate it from this directory with `brcc32.exe Assets\Icons.rc`.
+3. Select the **Win32** platform and build the `RADEssentials` package. From a RAD Studio command prompt, you can also build it from this directory with:
 
    ```powershell
    dcc32.exe -B RADEssentials.dpk
    ```
 
-3. Find `RADEssentials.bpl` in the package's configured BPL output directory. Check **Project > Options > Delphi Compiler > Output** if you are unsure where RAD Studio wrote it. If the IDE reports a missing required package, make sure the package dependencies listed above are installed and available to the selected RAD Studio version.
-4. In RAD Studio, open **Component > Install Packages**, choose **Add**, and select `RADEssentials.bpl` from that output directory.
-5. Restart RAD Studio if prompted. The **RADEssentials** menu should appear in the IDE.
+4. Find `RADEssentials.bpl` in the package's configured BPL output directory. Check **Project > Options > Delphi Compiler > Output** if you are unsure where RAD Studio wrote it. If the IDE reports a missing required package, make sure the package dependencies listed above are installed and available to the selected RAD Studio version.
+5. In RAD Studio, open **Component > Install Packages**, choose **Add**, and select `RADEssentials.bpl` from that output directory.
+6. Restart RAD Studio if prompted. The **RADEssentials** menu should appear in the IDE.
 
 To remove the plugin, open **Component > Install Packages**, select RAD Essentials, and remove it. This does not delete your GitHub token or settings from your user profile.
 
@@ -67,7 +69,7 @@ The Git window can upload build files as assets in a GitHub release after the so
 
 ## Settings and Data
 
-- **RADEssentials > Settings** changes the Format X keyboard shortcut.
+- **RADEssentials > Settings** changes the Format X keyboard shortcut. Click a shortcut field and press the desired key combination to record it.
 - The **Settings** button in the Git window opens Git settings for sign-in, release folder, and release asset masks.
 - Git settings are stored in `%USERPROFILE%\RadeEssentials\git.ini`.
 - The Git integration and its dockable window are also available from the IDE's **Help** menu.
