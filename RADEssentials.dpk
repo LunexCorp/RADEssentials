@@ -37,7 +37,8 @@ requires
 
 contains
   RADE.Core in 'RADE.Core.pas',
-  RADE.PDFViewer in 'Utils\RADE_PDFViewer\RADE.PDFViewer.pas' {RADEPDFViewerForm},
+  RADE.Search in 'Utils\RADE_Search\RADE.Search.pas',
+  RADE.PDFViewer in 'Utils\RADE_PDFViewer\RADE.PDFViewer.pas' {RADEPDFViewerFrame},
   RADE.Settings in 'Utils\RADE.Settings.pas' {RADESettingsForm},
   RADE.Refactor in 'Utils\RADE_Refactor\RADE.Refactor.pas',
   RADEGit.Core in 'Utils\RADE_Git\RADEGit.Core.pas',

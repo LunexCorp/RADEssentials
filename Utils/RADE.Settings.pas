@@ -5,14 +5,27 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes, System.IOUtils,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Menus,
-  System.IniFiles;
+  Vcl.ExtCtrls, System.IniFiles;
 
 type
   TRADESettingsForm = class(TForm)
+    PanelHeader: TPanel;
+    PanelFooter: TPanel;
+    PanelShortcuts: TPanel;
+    LblTitle: TLabel;
+    LblSubtitle: TLabel;
     LblShortcutFormatX: TLabel;
     EdtShortcutFormatX: TEdit;
     LblShortcutPDF: TLabel;
     EdtShortcutPDF: TEdit;
+    LblShortcutSearch: TLabel;
+    EdtShortcutSearch: TEdit;
+    LblFormatDescription: TLabel;
+    LblPDFDescription: TLabel;
+    LblSearchDescription: TLabel;
+    ShapeFormatX: TShape;
+    ShapePDF: TShape;
+    ShapeSearch: TShape;
     LblShortcutInstructions: TLabel;
     BtnSave: TButton;
     BtnCancel: TButton;
@@ -51,16 +64,39 @@ end;
 
 procedure TRADESettingsForm.FormCreate(Sender: TObject);
 begin
+  Caption := 'RADEssentials - Preferences';
+  Color := RGB(246, 248, 251);
+  PanelHeader.Color := RGB(32, 47, 67);
+  PanelFooter.Color := RGB(242, 245, 249);
+  PanelShortcuts.Color := clWhite;
+  LblTitle.Font.Color := clWhite;
+  LblTitle.Font.Size := 19;
+  LblSubtitle.Font.Color := RGB(213, 222, 233);
+  LblShortcutInstructions.Font.Color := RGB(90, 105, 125);
+  LblShortcutFormatX.Font.Color := RGB(50, 62, 78);
+  LblShortcutPDF.Font.Color := RGB(50, 62, 78);
+  LblShortcutSearch.Font.Color := RGB(50, 62, 78);
   EdtShortcutFormatX.ReadOnly := True;
   EdtShortcutPDF.ReadOnly := True;
+  EdtShortcutSearch.ReadOnly := True;
   EdtShortcutFormatX.OnKeyDown := ShortcutEditKeyDown;
   EdtShortcutPDF.OnKeyDown := ShortcutEditKeyDown;
+  EdtShortcutSearch.OnKeyDown := ShortcutEditKeyDown;
   EdtShortcutFormatX.OnKeyPress := ShortcutEditKeyPress;
   EdtShortcutPDF.OnKeyPress := ShortcutEditKeyPress;
+  EdtShortcutSearch.OnKeyPress := ShortcutEditKeyPress;
   EdtShortcutFormatX.Hint := 'Click here, then press the shortcut keys.';
   EdtShortcutPDF.Hint := 'Click here, then press the shortcut keys.';
+  EdtShortcutSearch.Hint := 'Click here, then press the shortcut keys.';
   EdtShortcutFormatX.ShowHint := True;
   EdtShortcutPDF.ShowHint := True;
+  EdtShortcutSearch.ShowHint := True;
+  EdtShortcutFormatX.Color := RGB(247, 249, 252);
+  EdtShortcutPDF.Color := RGB(247, 249, 252);
+  EdtShortcutSearch.Color := RGB(247, 249, 252);
+  EdtShortcutFormatX.Alignment := taCenter;
+  EdtShortcutPDF.Alignment := taCenter;
+  EdtShortcutSearch.Alignment := taCenter;
   LoadSettings;
 end;
 
@@ -91,6 +127,7 @@ begin
   try
     EdtShortcutFormatX.Text := Ini.ReadString('Shortcuts', 'FormatX', 'Ctrl+Alt+F');
     EdtShortcutPDF.Text := Ini.ReadString('Shortcuts', 'PDFViewer', 'Ctrl+Alt+P');
+    EdtShortcutSearch.Text := Ini.ReadString('Shortcuts', 'Search', 'Ctrl+Shift+A');
   finally
     Ini.Free;
   end;
@@ -104,6 +141,7 @@ begin
   try
     Ini.WriteString('Shortcuts', 'FormatX', EdtShortcutFormatX.Text);
     Ini.WriteString('Shortcuts', 'PDFViewer', EdtShortcutPDF.Text);
+    Ini.WriteString('Shortcuts', 'Search', EdtShortcutSearch.Text);
   finally
     Ini.Free;
   end;

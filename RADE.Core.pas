@@ -10,14 +10,17 @@ type
     main window; an IOTAKeyboardBinding is what makes them work inside the code editor. }
   TRADEKeyBinding = class(TNotifierObject, IOTAKeyboardBinding)
   private
-    FFormatXKey, FPDFKey: TShortCut;
-    FOnFormatX, FOnPDF: TNotifyEvent;
+    FFormatXKey, FPDFKey, FSearchKey: TShortCut;
+    FOnFormatX, FOnPDF, FOnSearch: TNotifyEvent;
     procedure DoFormatX(const Context: IOTAKeyContext; KeyCode: TShortCut;
       var BindingResult: TKeyBindingResult);
     procedure DoPDF(const Context: IOTAKeyContext; KeyCode: TShortCut;
       var BindingResult: TKeyBindingResult);
+    procedure DoSearch(const Context: IOTAKeyContext; KeyCode: TShortCut;
+      var BindingResult: TKeyBindingResult);
   public
-    constructor Create(AFormatXKey, APDFKey: TShortCut; const AOnFormatX, AOnPDF: TNotifyEvent);
+    constructor Create(AFormatXKey, APDFKey, ASearchKey: TShortCut;
+      const AOnFormatX, AOnPDF, AOnSearch: TNotifyEvent);
     { IOTAKeyboardBinding }
     function GetBindingType: TBindingType;
     function GetDisplayName: string;
@@ -30,16 +33,18 @@ type
     FKeyBindingIndex: Integer;
     FActionFormatX: TAction;
     FActionPDF: TAction;
+    FActionSearch: TAction;
     FActionSettings: TAction;
     FActionList: TActionList;
     FParentMenu: TMenuItem;
     FSplashBitmap: TBitmap;
     procedure CreateActionsAndMenus;
-    procedure BindKeys(AFormatXKey, APDFKey: TShortCut);
+    procedure BindKeys(AFormatXKey, APDFKey, ASearchKey: TShortCut);
     procedure UnbindKeys;
     procedure RemoveMenus;
     procedure OnFormatXExecute(Sender: TObject);
     procedure OnPDFViewerExecute(Sender: TObject);
+    procedure OnSearchExecute(Sender: TObject);
     procedure OnSettingsExecute(Sender: TObject);
     function GetIniPath: string;
 
@@ -66,7 +71,8 @@ procedure Unregister;
 implementation
 
 uses
-  RADEGit.Integration, RADE.Refactor, RADE.PDFViewer, RADE.Settings, Vcl.Forms, Winapi.Windows;
+  RADEGit.Integration, RADE.Refactor, RADE.PDFViewer, RADE.Settings,
+  RADE.Search, Vcl.Forms, Winapi.Windows;
 
 {$R 'Assets\Icons.res' 'Assets\Icons.rc'}
 
@@ -110,14 +116,16 @@ end;
 
 { TRADEKeyBinding }
 
-constructor TRADEKeyBinding.Create(AFormatXKey, APDFKey: TShortCut;
-  const AOnFormatX, AOnPDF: TNotifyEvent);
+constructor TRADEKeyBinding.Create(AFormatXKey, APDFKey, ASearchKey: TShortCut;
+  const AOnFormatX, AOnPDF, AOnSearch: TNotifyEvent);
 begin
   inherited Create;
   FFormatXKey := AFormatXKey;
   FPDFKey := APDFKey;
+  FSearchKey := ASearchKey;
   FOnFormatX := AOnFormatX;
   FOnPDF := AOnPDF;
+  FOnSearch := AOnSearch;
 end;
 
 function TRADEKeyBinding.GetBindingType: TBindingType;
@@ -141,6 +149,8 @@ begin
     BindingServices.AddKeyBinding([FFormatXKey], DoFormatX, nil);
   if FPDFKey <> 0 then
     BindingServices.AddKeyBinding([FPDFKey], DoPDF, nil);
+  if FSearchKey <> 0 then
+    BindingServices.AddKeyBinding([FSearchKey], DoSearch, nil);
 end;
 
 procedure TRADEKeyBinding.DoFormatX(const Context: IOTAKeyContext; KeyCode: TShortCut;
@@ -159,16 +169,25 @@ begin
     FOnPDF(nil);
 end;
 
+procedure TRADEKeyBinding.DoSearch(const Context: IOTAKeyContext; KeyCode: TShortCut;
+  var BindingResult: TKeyBindingResult);
+begin
+  BindingResult := krHandled;
+  if Assigned(FOnSearch) then
+    FOnSearch(nil);
+end;
+
 { TRADEWizard }
 
-procedure TRADEWizard.BindKeys(AFormatXKey, APDFKey: TShortCut);
+procedure TRADEWizard.BindKeys(AFormatXKey, APDFKey, ASearchKey: TShortCut);
 var
   KeyServices: IOTAKeyboardServices;
 begin
   UnbindKeys;
   if Supports(BorlandIDEServices, IOTAKeyboardServices, KeyServices) then
     FKeyBindingIndex := KeyServices.AddKeyboardBinding(
-      TRADEKeyBinding.Create(AFormatXKey, APDFKey, OnFormatXExecute, OnPDFViewerExecute));
+      TRADEKeyBinding.Create(AFormatXKey, APDFKey, ASearchKey,
+        OnFormatXExecute, OnPDFViewerExecute, OnSearchExecute));
 end;
 
 procedure TRADEWizard.UnbindKeys;
@@ -212,7 +231,6 @@ begin
   UnbindKeys;
   FreeAndNil(FSplashBitmap);
   RemoveMenus;
-  RADEPDFViewer_FreeDock;
   RadeGit_Done;
   if GlobalWizardInstance = Self then
   begin
@@ -230,31 +248,38 @@ end;
 procedure TRADEWizard.RefreshShortcuts;
 var
   Ini: TIniFile;
-  FormatXSc, PDFSc: string;
-  FormatXKey, PDFKey: TShortCut;
+  FormatXSc, PDFSc, SearchSc: string;
+  FormatXKey, PDFKey, SearchKey: TShortCut;
 begin
   Ini := TIniFile.Create(GetIniPath);
   try
     FormatXSc := Ini.ReadString('Shortcuts', 'FormatX', 'Ctrl+Alt+F');
     PDFSc := Ini.ReadString('Shortcuts', 'PDFViewer', 'Ctrl+Alt+P');
+    SearchSc := Ini.ReadString('Shortcuts', 'Search', 'Ctrl+Shift+A');
   finally
     Ini.Free;
   end;
 
   FormatXKey := TextToShortCut(Trim(FormatXSc));
   PDFKey := TextToShortCut(Trim(PDFSc));
+  SearchKey := TextToShortCut(Trim(SearchSc));
 
   // menu items / IDE main window
   if Assigned(FActionFormatX) then
     FActionFormatX.ShortCut := FormatXKey;
   if Assigned(FActionPDF) then
+  begin
     FActionPDF.ShortCut := PDFKey;
+    FActionPDF.Enabled := False;
+  end;
+  if Assigned(FActionSearch) then
+    FActionSearch.ShortCut := SearchKey;
 
   // code editor (a TAction shortcut alone never fires there). Re-bound on every refresh so
   // changes from the settings window apply immediately, no IDE restart needed.
   if Assigned(FActionPDF) and not FActionPDF.Enabled then
     PDFKey := 0;   // PDF viewer still disabled: don't hijack the key
-  BindKeys(FormatXKey, PDFKey);
+  BindKeys(FormatXKey, PDFKey, SearchKey);
 end;
 
 function TRADEWizard.GetIDString: string;
@@ -279,7 +304,7 @@ end;
 
 procedure TRADEWizard.Execute;
 begin
-  TRADEPDFViewerForm.ToggleViewer;
+  TRADEPDFViewerEditorHost.ShowViewer;
 end;
 
 procedure TRADEWizard.CreateActionsAndMenus;
@@ -291,7 +316,6 @@ begin
   if not Supports(BorlandIDEServices, INTAServices, NTAServices) then Exit;
 
   RadeGit_Init;
-  RADEPDFViewer_RegisterDock;
 
   RemoveMenus;
 
@@ -302,19 +326,26 @@ begin
   FActionFormatX := TAction.Create(nil);
   FActionFormatX.ActionList := FActionList;
   FActionFormatX.Name := 'RADEActionFormatX';
-  FActionFormatX.Caption := 'Format X';
+  FActionFormatX.Caption := 'Format Code';
   FActionFormatX.OnExecute := OnFormatXExecute;
 
   FActionPDF := TAction.Create(nil);
   FActionPDF.ActionList := FActionList;
   FActionPDF.Name := 'RADEActionPDF';
   FActionPDF.Caption := 'PDF Viewer';
+  FActionPDF.Enabled := False;
   FActionPDF.OnExecute := OnPDFViewerExecute;
+
+  FActionSearch := TAction.Create(nil);
+  FActionSearch.ActionList := FActionList;
+  FActionSearch.Name := 'RADEActionSearch';
+  FActionSearch.Caption := 'Search';
+  FActionSearch.OnExecute := OnSearchExecute;
 
   FActionSettings := TAction.Create(nil);
   FActionSettings.ActionList := FActionList;
   FActionSettings.Name := 'RADEActionSettings';
-  FActionSettings.Caption := 'Settings...';
+  FActionSettings.Caption := 'Settings';
   FActionSettings.OnExecute := OnSettingsExecute;
 
   FParentMenu := TMenuItem.Create(MainMenu);
@@ -324,6 +355,10 @@ begin
   // Add the Git integration's own submenu item to RAD Essentials.
   // RadeGit_Init must run before this call.
   RadeGit_AddMenuItem(FParentMenu);
+
+  SubItem := TMenuItem.Create(FParentMenu);
+  SubItem.Action := FActionSearch;
+  FParentMenu.Add(SubItem);
 
   SubItem := TMenuItem.Create(FParentMenu);
   SubItem.Action := FActionFormatX;
@@ -359,6 +394,7 @@ begin
 
   FreeAndNil(FActionFormatX);
   FreeAndNil(FActionPDF);
+  FreeAndNil(FActionSearch);
   FreeAndNil(FActionSettings);
   FreeAndNil(FActionList);
 end;
@@ -370,7 +406,12 @@ end;
 
 procedure TRADEWizard.OnPDFViewerExecute(Sender: TObject);
 begin
-  TRADEPDFViewerForm.ToggleViewer;
+  TRADEPDFViewerEditorHost.ShowViewer;
+end;
+
+procedure TRADEWizard.OnSearchExecute(Sender: TObject);
+begin
+  RADESearch_Show;
 end;
 
 procedure TRADEWizard.OnSettingsExecute(Sender: TObject);

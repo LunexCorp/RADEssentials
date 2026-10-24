@@ -6,42 +6,32 @@ uses
   Winapi.Windows, Winapi.WebView2, System.SysUtils, System.Classes,
   System.IOUtils, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.ExtCtrls,
-  Vcl.ComCtrls, Vcl.Edge, DockForm;
+  Vcl.ComCtrls, Vcl.Edge;
 
 type
-  TRADEPDFViewerForm = class(TDockableForm)
+  TRADEPDFViewerFrame = class(TFrame)
     PanelTopBar: TPanel;
+    LblTitle: TLabel;
     BtnOpenPDF: TButton;
     BtnMinimize: TButton;
-    BtnClose: TButton;
     CmbRecent: TComboBox;
-    LblRecent: TLabel;
-    SplitterSidebar: TSplitter;
-    PanelSidebar: TPanel;
-    TreeBookmarks: TTreeView;
-    LblBookmarks: TLabel;
     PageControlPDFs: TPageControl;
     procedure BtnOpenPDFClick(Sender: TObject);
     procedure BtnMinimizeClick(Sender: TObject);
-    procedure BtnCloseClick(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure CmbRecentSelect(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
   private
     BtnZoomOut, BtnZoomIn, BtnWelcomeOpen: TButton;
     PanelWelcome, PanelStatus: TPanel;
-    LblWelcome, LblStatus: TLabel;
+    LblWelcome, LblWelcomeSubtitle, LblStatus: TLabel;
     FRecentFiles: TStringList;
     procedure ActiveTabChanged(Sender: TObject);
     procedure BrowserCreateCompleted(Sender: TCustomEdgeBrowser; AResult: HResult);
     procedure BrowserNavigationCompleted(Sender: TCustomEdgeBrowser;
       IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
     procedure CloseActiveTab;
-    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     function GetActiveBrowser: TEdgeBrowser;
     function GetRecentListPath: string;
     procedure LoadRecentList;
-    procedure RecentClick(Sender: TObject);
     procedure RefreshRecentList;
     procedure AddToRecentList(const AFileName: string);
     procedure OpenPDFFile(const AFileName: string);
@@ -52,90 +42,55 @@ type
     procedure ZoomOutClick(Sender: TObject);
     procedure ZoomInClick(Sender: TObject);
   public
-    constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    class procedure ToggleViewer;
-    class function IsOpen: Boolean;
+    procedure InitializeViewer;
+    procedure ShutdownViewer;
   end;
 
-procedure RADEPDFViewer_RegisterDock;
-procedure RADEPDFViewer_FreeDock;
+  TRADEPDFViewerEditorHost = class
+  public
+    class procedure ShowViewer;
+  end;
 
 implementation
 
 {$R *.dfm}
 
-uses
-  DeskUtil, ToolsAPI;
+class procedure TRADEPDFViewerEditorHost.ShowViewer;
+begin
+  MessageDlg('PDF Viewer is temporarily unavailable while the viewer is being repaired.',
+    mtInformation, [mbOK], 0);
+end;
 
+procedure TRADEPDFViewerFrame.ShutdownViewer;
 var
-  GlobalPDFForm: TRADEPDFViewerForm = nil;
-  GRegistered: Boolean;
-
-procedure RADEPDFViewer_RegisterDock;
+  I: Integer;
+  LBrowser: TEdgeBrowser;
 begin
-  if GRegistered then
-    Exit;
-  RegisterFieldAddress('RADEPDFViewer', @GlobalPDFForm);
-  RegisterDesktopFormClass(TRADEPDFViewerForm, 'RADEPDFViewer', 'RADEPDFViewer');
-  GRegistered := True;
+  for I := 0 to PageControlPDFs.PageCount - 1 do
+    if PageControlPDFs.Pages[I].FindComponent('PdfBrowser') is TEdgeBrowser then
+    begin
+      LBrowser := TEdgeBrowser(PageControlPDFs.Pages[I].FindComponent('PdfBrowser'));
+      LBrowser.OnCreateWebViewCompleted := nil;
+      LBrowser.OnNavigationCompleted := nil;
+      LBrowser.CloseWebView;
+    end;
 end;
 
-procedure RADEPDFViewer_FreeDock;
+destructor TRADEPDFViewerFrame.Destroy;
 begin
-  if GRegistered then
-  begin
-    UnregisterFieldAddress(@GlobalPDFForm);
-    GRegistered := False;
-  end;
-  FreeAndNil(GlobalPDFForm);
-end;
-
-constructor TRADEPDFViewerForm.Create(AOwner: TComponent);
-begin
-  inherited Create(AOwner);
-  Caption := 'PDF Studio';
-  DeskSection := 'RADEPDFViewer';
-  AutoSave := True;
-  SaveStateNecessary := True;
-  Constraints.MinWidth := 760;
-  Constraints.MinHeight := 420;
-end;
-
-destructor TRADEPDFViewerForm.Destroy;
-begin
+  ShutdownViewer;
   FreeAndNil(FRecentFiles);
-  if GlobalPDFForm = Self then
-    GlobalPDFForm := nil;
   inherited Destroy;
 end;
 
-class procedure TRADEPDFViewerForm.ToggleViewer;
-begin
-  if GlobalPDFForm = nil then
-    GlobalPDFForm := TRADEPDFViewerForm.Create(Application);
-  if GlobalPDFForm.Visible then
-    GlobalPDFForm.Hide
-  else if not GlobalPDFForm.Floating then
-    GlobalPDFForm.ForceShow
-  else
-    GlobalPDFForm.Show;
-  if GlobalPDFForm.Visible then
-    FocusWindow(GlobalPDFForm);
-end;
-
-class function TRADEPDFViewerForm.IsOpen: Boolean;
-begin
-  Result := Assigned(GlobalPDFForm) and GlobalPDFForm.Visible;
-end;
-
-function TRADEPDFViewerForm.GetRecentListPath: string;
+function TRADEPDFViewerFrame.GetRecentListPath: string;
 begin
   Result := TPath.Combine(TPath.Combine(TPath.GetHomePath, 'RadeEssentials'),
     'recent-pdfs.txt');
 end;
 
-procedure TRADEPDFViewerForm.LoadRecentList;
+procedure TRADEPDFViewerFrame.LoadRecentList;
 var
   I: Integer;
 begin
@@ -152,31 +107,23 @@ begin
   RefreshRecentList;
 end;
 
-procedure TRADEPDFViewerForm.RefreshRecentList;
+procedure TRADEPDFViewerFrame.RefreshRecentList;
 var
   I: Integer;
-  LNode: TTreeNode;
 begin
   CmbRecent.Items.BeginUpdate;
-  TreeBookmarks.Items.BeginUpdate;
   try
     CmbRecent.Items.Clear;
-    TreeBookmarks.Items.Clear;
     for I := 0 to FRecentFiles.Count - 1 do
-    begin
       CmbRecent.Items.Add(ExtractFileName(FRecentFiles[I]));
-      LNode := TreeBookmarks.Items.Add(nil, ExtractFileName(FRecentFiles[I]));
-      LNode.Data := Pointer(I + 1);
-    end;
     if CmbRecent.Items.Count > 0 then
       CmbRecent.ItemIndex := 0;
   finally
-    TreeBookmarks.Items.EndUpdate;
     CmbRecent.Items.EndUpdate;
   end;
 end;
 
-procedure TRADEPDFViewerForm.AddToRecentList(const AFileName: string);
+procedure TRADEPDFViewerFrame.AddToRecentList(const AFileName: string);
 var
   LPath: string;
   LIndex: Integer;
@@ -197,7 +144,7 @@ begin
   RefreshRecentList;
 end;
 
-procedure TRADEPDFViewerForm.BtnOpenPDFClick(Sender: TObject);
+procedure TRADEPDFViewerFrame.BtnOpenPDFClick(Sender: TObject);
 var
   LDialog: TOpenDialog;
   LFile: string;
@@ -215,7 +162,7 @@ begin
   end;
 end;
 
-procedure TRADEPDFViewerForm.OpenPDFFile(const AFileName: string);
+procedure TRADEPDFViewerFrame.OpenPDFFile(const AFileName: string);
 var
   I: Integer;
   LPath, LUserData: string;
@@ -246,8 +193,14 @@ begin
   LBrowser.Name := 'PdfBrowser';
   LBrowser.OnCreateWebViewCompleted := BrowserCreateCompleted;
   LBrowser.OnNavigationCompleted := BrowserNavigationCompleted;
-  LUserData := TPath.Combine(TPath.GetHomePath, 'RadeEssentials\PDFWebView2');
-  ForceDirectories(LUserData);
+  LUserData := TPath.Combine(GetEnvironmentVariable('LOCALAPPDATA'),
+    'RADEssentials\PDFWebView2');
+  if not ForceDirectories(LUserData) and not TDirectory.Exists(LUserData) then
+  begin
+    SetStatus('Could not create the WebView2 data folder: ' + LUserData);
+    LTab.Free;
+    Exit;
+  end;
   LBrowser.UserDataFolder := LUserData;
   LBrowser.Parent := LTab;
   LBrowser.Align := alClient;
@@ -255,21 +208,19 @@ begin
   PageControlPDFs.ActivePage := LTab;
   SetStatus('Loading ' + ExtractFileName(LPath) + '...');
   UpdateWelcome;
+  LBrowser.Navigate(PdfFileUrl(LPath));
 end;
 
-function TRADEPDFViewerForm.PdfFileUrl(const AFileName: string): string;
+function TRADEPDFViewerFrame.PdfFileUrl(const AFileName: string): string;
 var
-  LPath: string;
+  LFileName: string;
   LBytes: TBytes;
   LByte: Byte;
   LBuilder: TStringBuilder;
 begin
-  LPath := TPath.GetFullPath(AFileName).Replace('\', '/');
-  LBytes := TEncoding.UTF8.GetBytes(LPath);
-  if LPath.StartsWith('//') then
-    LBuilder := TStringBuilder.Create('file:')
-  else
-    LBuilder := TStringBuilder.Create('file:///');
+  LFileName := ExtractFileName(AFileName);
+  LBytes := TEncoding.UTF8.GetBytes(LFileName);
+  LBuilder := TStringBuilder.Create('https://rade-pdf.local/');
   try
     for LByte in LBytes do
       if ((LByte >= Ord('A')) and (LByte <= Ord('Z'))) or
@@ -277,7 +228,7 @@ begin
         ((LByte >= Ord('0')) and (LByte <= Ord('9'))) or
         (LByte = Ord('-')) or (LByte = Ord('.')) or
         (LByte = Ord('_')) or (LByte = Ord('~')) or
-        (LByte = Ord('/')) or (LByte = Ord(':')) then
+        (LByte = Ord('/')) then
         LBuilder.Append(Char(LByte))
       else
         LBuilder.Append('%').Append(IntToHex(LByte, 2));
@@ -287,76 +238,94 @@ begin
   end;
 end;
 
-procedure TRADEPDFViewerForm.CmbRecentSelect(Sender: TObject);
+procedure TRADEPDFViewerFrame.CmbRecentSelect(Sender: TObject);
 begin
   if (CmbRecent.ItemIndex >= 0) and (CmbRecent.ItemIndex < FRecentFiles.Count) then
     OpenPDFFile(FRecentFiles[CmbRecent.ItemIndex]);
 end;
 
-procedure TRADEPDFViewerForm.RecentClick(Sender: TObject);
-begin
-  if (TreeBookmarks.Selected <> nil) and
-    (TreeBookmarks.Selected.Data <> nil) then
-    OpenPDFFile(FRecentFiles[NativeInt(TreeBookmarks.Selected.Data) - 1]);
-end;
-
-function TRADEPDFViewerForm.GetActiveBrowser: TEdgeBrowser;
+function TRADEPDFViewerFrame.GetActiveBrowser: TEdgeBrowser;
 begin
   Result := nil;
   if PageControlPDFs.ActivePage <> nil then
     Result := PageControlPDFs.ActivePage.FindComponent('PdfBrowser') as TEdgeBrowser;
 end;
 
-procedure TRADEPDFViewerForm.ActiveTabChanged(Sender: TObject);
+procedure TRADEPDFViewerFrame.ActiveTabChanged(Sender: TObject);
+var
+  LBrowser: TEdgeBrowser;
 begin
   if PageControlPDFs.ActivePage <> nil then
   begin
-    Caption := 'PDF Studio - ' + PageControlPDFs.ActivePage.Caption;
-    SetStatus(PageControlPDFs.ActivePage.Hint);
-  end
-  else
-    Caption := 'PDF Studio';
+    LBrowser := GetActiveBrowser;
+    if (LBrowser <> nil) and LBrowser.WebViewCreated then
+      SetStatus('Ready: ' + PageControlPDFs.ActivePage.Caption)
+    else if (LBrowser <> nil) and (LBrowser.LastErrorCode < 0) then
+      SetStatus(Format('WebView2 could not start (HRESULT 0x%s).',
+        [IntToHex(Cardinal(LBrowser.LastErrorCode), 8)]))
+    else
+      SetStatus('Loading ' + PageControlPDFs.ActivePage.Caption + '...');
+  end;
   UpdateWelcome;
 end;
 
-procedure TRADEPDFViewerForm.BrowserCreateCompleted(Sender: TCustomEdgeBrowser;
+procedure TRADEPDFViewerFrame.BrowserCreateCompleted(Sender: TCustomEdgeBrowser;
   AResult: HResult);
 var
   LTab: TTabSheet;
+  LWebView3: ICoreWebView2_3;
+  LResult: HResult;
 begin
   if AResult < 0 then
   begin
-    SetStatus('WebView2 could not start. Install the Microsoft Edge WebView2 Runtime.');
+    if Sender.Owner = PageControlPDFs.ActivePage then
+      SetStatus(Format('WebView2 could not start (HRESULT 0x%s). Check the WebView2 Runtime and access to %s.',
+        [IntToHex(Cardinal(AResult), 8),
+        TPath.Combine(GetEnvironmentVariable('LOCALAPPDATA'),
+          'RADEssentials\PDFWebView2')]));
     Exit;
   end;
   LTab := Sender.Owner as TTabSheet;
-  if not Sender.Navigate(PdfFileUrl(LTab.Hint)) then
+  if not Supports(Sender.DefaultInterface, ICoreWebView2_3, LWebView3) then
   begin
     if LTab = PageControlPDFs.ActivePage then
-      SetStatus('Could not open ' + LTab.Caption + '.');
-  end
-  else if LTab = PageControlPDFs.ActivePage then
-    SetStatus('Loading ' + LTab.Caption + '...');
+      SetStatus('The installed WebView2 Runtime is too old to display local PDFs. Update the Evergreen Runtime.');
+    Exit;
+  end;
+  LResult := LWebView3.SetVirtualHostNameToFolderMapping(
+    'rade-pdf.local', PChar(ExtractFileDir(LTab.Hint)),
+    COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_ALLOW);
+  if LResult < 0 then
+  begin
+    if LTab = PageControlPDFs.ActivePage then
+      SetStatus(Format('Could not prepare %s for viewing (HRESULT 0x%s).',
+        [LTab.Caption, IntToHex(Cardinal(LResult), 8)]));
+    Exit;
+  end;
 end;
 
-procedure TRADEPDFViewerForm.BrowserNavigationCompleted(Sender: TCustomEdgeBrowser;
+procedure TRADEPDFViewerFrame.BrowserNavigationCompleted(Sender: TCustomEdgeBrowser;
   IsSuccess: Boolean; WebErrorStatus: COREWEBVIEW2_WEB_ERROR_STATUS);
+var
+  LTab: TTabSheet;
 begin
-  if Sender.Owner = PageControlPDFs.ActivePage then
+  LTab := Sender.Owner as TTabSheet;
+  if LTab = PageControlPDFs.ActivePage then
     if IsSuccess then
-      SetStatus('Ready: ' + PageControlPDFs.ActivePage.Caption)
+      SetStatus('Ready: ' + LTab.Caption)
     else
-      SetStatus(Format('PDF navigation failed (error %d).', [Ord(WebErrorStatus)]));
+      SetStatus(Format('Could not display %s (WebView2 error %d). Check that the file is a readable PDF.',
+        [LTab.Caption, Ord(WebErrorStatus)]));
 end;
 
-procedure TRADEPDFViewerForm.UpdateWelcome;
+procedure TRADEPDFViewerFrame.UpdateWelcome;
 begin
   PanelWelcome.Visible := PageControlPDFs.PageCount = 0;
   if PageControlPDFs.PageCount = 0 then
     SetStatus('Open a PDF to get started.');
 end;
 
-procedure TRADEPDFViewerForm.CloseActiveTab;
+procedure TRADEPDFViewerFrame.CloseActiveTab;
 var
   LTab: TTabSheet;
 begin
@@ -368,38 +337,12 @@ begin
     UpdateWelcome;
 end;
 
-procedure TRADEPDFViewerForm.BtnMinimizeClick(Sender: TObject);
+procedure TRADEPDFViewerFrame.BtnMinimizeClick(Sender: TObject);
 begin
   CloseActiveTab;
 end;
 
-procedure TRADEPDFViewerForm.BtnCloseClick(Sender: TObject);
-begin
-  Close;
-end;
-
-procedure TRADEPDFViewerForm.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
-  Action := caHide;
-end;
-
-procedure TRADEPDFViewerForm.FormKeyDown(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
-begin
-  if (ssCtrl in Shift) and (Key = Ord('O')) then
-    BtnOpenPDFClick(Self)
-  else if (ssCtrl in Shift) and (Key = Ord('W')) then
-    CloseActiveTab
-  else if (ssCtrl in Shift) and (Key = VK_ADD) then
-    ZoomBy(0.1)
-  else if (ssCtrl in Shift) and (Key = VK_SUBTRACT) then
-    ZoomBy(-0.1)
-  else
-    Exit;
-  Key := 0;
-end;
-
-procedure TRADEPDFViewerForm.ZoomBy(ADelta: Double);
+procedure TRADEPDFViewerFrame.ZoomBy(ADelta: Double);
 var
   LBrowser: TEdgeBrowser;
   LZoom: Double;
@@ -416,42 +359,44 @@ begin
   SetStatus(Format('Zoom: %d%%', [Round(LZoom * 100)]));
 end;
 
-procedure TRADEPDFViewerForm.ZoomOutClick(Sender: TObject);
+procedure TRADEPDFViewerFrame.ZoomOutClick(Sender: TObject);
 begin
   ZoomBy(-0.1);
 end;
 
-procedure TRADEPDFViewerForm.ZoomInClick(Sender: TObject);
+procedure TRADEPDFViewerFrame.ZoomInClick(Sender: TObject);
 begin
   ZoomBy(0.1);
 end;
 
-procedure TRADEPDFViewerForm.SetStatus(const AText: string);
+procedure TRADEPDFViewerFrame.SetStatus(const AText: string);
 begin
   if LblStatus <> nil then
     LblStatus.Caption := AText;
 end;
 
-procedure TRADEPDFViewerForm.FormCreate(Sender: TObject);
+procedure TRADEPDFViewerFrame.InitializeViewer;
 begin
   FRecentFiles := TStringList.Create;
-  KeyPreview := True;
-  OnKeyDown := FormKeyDown;
   PageControlPDFs.OnChange := ActiveTabChanged;
-  TreeBookmarks.OnDblClick := RecentClick;
-  LblRecent.Caption := 'Recent';
-  LblBookmarks.Caption := 'RECENT FILES';
-  BtnOpenPDF.Caption := 'Open PDFs...';
+  LblTitle.Caption := 'PDF Viewer';
+  BtnOpenPDF.Caption := 'Open...';
   BtnMinimize.Caption := 'Close tab';
-  BtnClose.Caption := 'Hide';
-  PanelSidebar.BevelOuter := bvNone;
+  BtnMinimize.Hint := 'Close current document';
+  BtnMinimize.ShowHint := True;
   PanelTopBar.BevelOuter := bvNone;
-  TreeBookmarks.ReadOnly := True;
-  TreeBookmarks.ShowHint := True;
+  PanelTopBar.Color := clWhite;
+  LblTitle.Font.Style := [fsBold];
+  LblTitle.Font.Size := 12;
+  LblTitle.Font.Color := RGB(40, 55, 75);
+  BtnOpenPDF.Font.Style := [fsBold];
+  PageControlPDFs.HotTrack := True;
+  PageControlPDFs.TabPosition := tpTop;
 
   BtnZoomOut := TButton.Create(Self);
   BtnZoomOut.Parent := PanelTopBar;
-  BtnZoomOut.SetBounds(455, 10, 36, 27);
+  BtnZoomOut.SetBounds(ClientWidth - 215, 8, 30, 28);
+  BtnZoomOut.Anchors := [akTop, akRight];
   BtnZoomOut.Caption := '-';
   BtnZoomOut.Hint := 'Zoom out';
   BtnZoomOut.ShowHint := True;
@@ -459,7 +404,8 @@ begin
 
   BtnZoomIn := TButton.Create(Self);
   BtnZoomIn.Parent := PanelTopBar;
-  BtnZoomIn.SetBounds(495, 10, 36, 27);
+  BtnZoomIn.SetBounds(ClientWidth - 181, 8, 30, 28);
+  BtnZoomIn.Anchors := [akTop, akRight];
   BtnZoomIn.Caption := '+';
   BtnZoomIn.Hint := 'Zoom in';
   BtnZoomIn.ShowHint := True;
@@ -470,11 +416,15 @@ begin
   PanelStatus.Align := alBottom;
   PanelStatus.Height := 26;
   PanelStatus.BevelOuter := bvNone;
+  PanelStatus.Color := RGB(246, 247, 249);
+  PanelStatus.Padding.Left := 12;
+  PanelStatus.Padding.Right := 12;
 
   LblStatus := TLabel.Create(Self);
   LblStatus.Parent := PanelStatus;
   LblStatus.Align := alClient;
   LblStatus.Layout := tlCenter;
+  LblStatus.Font.Color := RGB(75, 85, 100);
   LblStatus.Caption := 'Open a PDF to get started.';
 
   PanelWelcome := TPanel.Create(Self);
@@ -482,24 +432,37 @@ begin
   PanelWelcome.Align := alClient;
   PanelWelcome.BevelOuter := bvNone;
   PanelWelcome.Padding.Top := 80;
+  PanelWelcome.Color := clWhite;
+  PanelWelcome.ParentBackground := False;
 
   LblWelcome := TLabel.Create(Self);
   LblWelcome.Parent := PanelWelcome;
   LblWelcome.Align := alTop;
-  LblWelcome.Height := 88;
+  LblWelcome.Height := 64;
   LblWelcome.Alignment := taCenter;
   LblWelcome.Layout := tlCenter;
-  LblWelcome.Font.Size := 20;
+  LblWelcome.Font.Size := 22;
   LblWelcome.Font.Style := [fsBold];
-  LblWelcome.Caption := 'PDF Studio';
+  LblWelcome.Font.Color := RGB(40, 55, 75);
+  LblWelcome.Caption := 'Your documents, in one place';
+
+  LblWelcomeSubtitle := TLabel.Create(Self);
+  LblWelcomeSubtitle.Parent := PanelWelcome;
+  LblWelcomeSubtitle.Align := alTop;
+  LblWelcomeSubtitle.Height := 44;
+  LblWelcomeSubtitle.Alignment := taCenter;
+  LblWelcomeSubtitle.Layout := tlCenter;
+  LblWelcomeSubtitle.Font.Size := 10;
+  LblWelcomeSubtitle.Font.Color := RGB(105, 115, 130);
+  LblWelcomeSubtitle.Caption := 'Open a PDF to read, search, print, and move between documents.';
 
   BtnWelcomeOpen := TButton.Create(Self);
   BtnWelcomeOpen.Parent := PanelWelcome;
   BtnWelcomeOpen.Align := alTop;
-  BtnWelcomeOpen.Height := 34;
-  BtnWelcomeOpen.Margins.Left := 100;
-  BtnWelcomeOpen.Margins.Right := 100;
-  BtnWelcomeOpen.Margins.Top := 12;
+  BtnWelcomeOpen.Height := 38;
+  BtnWelcomeOpen.Margins.Left := 180;
+  BtnWelcomeOpen.Margins.Right := 180;
+  BtnWelcomeOpen.Margins.Top := 16;
   BtnWelcomeOpen.AlignWithMargins := True;
   BtnWelcomeOpen.Caption := 'Open PDF files';
   BtnWelcomeOpen.OnClick := BtnOpenPDFClick;

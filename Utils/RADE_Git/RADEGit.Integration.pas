@@ -14,7 +14,7 @@ procedure RadeGit_Init;
 // Call when your plugin unloads (before/while freeing your menus)
 procedure RadeGit_Done;
 
-// Adds "RADE Git" under your RAD Essentials menu. Greyed out if Git is missing.
+// Adds "Git" under your RAD Essentials menu. Greyed out if Git is missing.
 function RadeGit_AddMenuItem(AParent: TMenuItem): TMenuItem;
 
 // Adds "RAD Essentials" to the IDE's Help menu (opens the help window)
@@ -65,14 +65,14 @@ begin
   RadeGit_FreeDock;
   RadeGit_CloseHelp;
   FreeAndNil(GHandlers);
-  // The "RADE Git" item belongs to YOUR menu and is freed with it.
+  // The "Git" item belongs to YOUR menu and is freed with it.
 end;
 
 function RadeGit_AddMenuItem(AParent: TMenuItem): TMenuItem;
 begin
   RadeGit_Init;
   Result := TMenuItem.Create(AParent);
-  Result.Caption := 'RADE Git';
+  Result.Caption := 'Git';
   Result.Enabled := RadeGit_CheckGitInstalledOnce;
   if not Result.Enabled then
     Result.Hint := 'Git is not installed. Install it and restart RAD Studio.';

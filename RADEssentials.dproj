@@ -74,7 +74,7 @@
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
-        <DCC_BplOutput>C:\Users\Christo\Desktop\Folders\RADEssentiales\Builds\</DCC_BplOutput>
+        <DCC_BplOutput>.\Builds\</DCC_BplOutput>
         <Debugger_HostApplication>C:\Program Files (x86)\Embarcadero\Studio\23.0\bin\bds.exe</Debugger_HostApplication>
         <Debugger_RunParams>-pDelphi -rRADEssentialesDebug</Debugger_RunParams>
     </PropertyGroup>
@@ -88,6 +88,7 @@
         <DCCReference Include="vclie.dcp"/>
         <DCCReference Include="vcledge.dcp"/>
         <DCCReference Include="RADE.Core.pas"/>
+        <DCCReference Include="Utils\RADE_Search\RADE.Search.pas"/>
         <DCCReference Include="Utils\RADE_PDFViewer\RADE.PDFViewer.pas">
             <Form>RADEPDFViewerForm</Form>
         </DCCReference>
